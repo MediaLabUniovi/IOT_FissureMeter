@@ -17,6 +17,8 @@
 //#define CFG_eu868 1
 //#define CFG_sx1276_radio 1
 
+#define DEEP_SLEEP
+
 // CREDENTIALS
 
 #define CONFIG_1
