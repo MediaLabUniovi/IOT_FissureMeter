@@ -23,7 +23,9 @@ float BME280_hum=0;
 int i_Vbat=0;
 
 // ******** Encoder
-void read_encoder() {
+void read_encoder() 
+{
+  digitalWrite(LED_BUILTIN, LOW);
   static uint8_t prevClkData = 3;  // Lookup table index
   static int8_t encVal = 0;   // Encoder value  
   static const int8_t enc_states[]  = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0}; // Lookup table
@@ -44,6 +46,7 @@ void read_encoder() {
    counter--;               // Decrease counter
    encVal = 0;
   }
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 // ******** Encoder
 
@@ -73,6 +76,7 @@ static osjob_t sendjob;
 
 void do_send(osjob_t *j)
 {
+  digitalWrite(LED_BUILTIN, LOW);
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND)
   {
@@ -100,8 +104,8 @@ void do_send(osjob_t *j)
     // Sends
     send_encTicks=counter;
     send_DS18B20_tempC=DS18B20_tempC*100;
-    send_i_hum=i_hum*100;
-    send_i_rain=i_rain*100;
+    send_i_hum=i_hum;
+    send_i_rain=i_rain;
     send_BME280_pres=BME280_pres*10;
     send_BME280_tempC=BME280_tempC*100;
     send_BME280_hum=BME280_hum*100;
@@ -129,6 +133,7 @@ void do_send(osjob_t *j)
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
     Serial.println(F("Packet queued"));
+    digitalWrite(LED_BUILTIN, HIGH);
   }
   // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -176,7 +181,16 @@ void onEvent(ev_t ev)
     // Schedule next transmission
     //os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
     do_send(&sendjob);
-    LowPower.deepSleep();   
+    
+
+    #ifdef LIGHT_SLEEP
+    LowPower.sleep();
+    #endif
+
+    #ifdef DEEP_SLEEP
+    LowPower.deepSleep(); 
+    #endif  
+
     break;
   case EV_LOST_TSYNC:
     Serial.println(F("EV_LOST_TSYNC"));
@@ -234,13 +248,24 @@ void setup()
   pinMode(pinDATA, INPUT_PULLUP);
   // attachInterrupt(digitalPinToInterrupt(pinCLK),read_encoder,CHANGE);
   // attachInterrupt(digitalPinToInterrupt(pinDATA),read_encoder,CHANGE);
+
+  #ifdef LIGHT_SLEEP
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinCLK), read_encoder, CHANGE, SLEEP_MODE);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinDATA), read_encoder, CHANGE, SLEEP_MODE);
+  #endif
+
+  #ifdef DEEP_SLEEP
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinCLK), read_encoder, CHANGE, DEEP_SLEEP_MODE);
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinDATA), read_encoder, CHANGE, DEEP_SLEEP_MODE);
+  #endif
 
   pinMode(pinHUM, INPUT);
   pinMode(pinRAIN, INPUT);
   pinMode(pinDS18B20, INPUT);
   pinMode(pinBAT, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);    // OFF
+
 
   Wire.begin();
   Wire.setSCL(pinBME280_SCL);
@@ -299,7 +324,14 @@ void setup()
 
   // Start job
   do_send(&sendjob);
+  
+  #ifdef LIGHT_SLEEP
+  LowPower.sleep();
+  #endif
+
+  #ifdef DEEP_SLEEP
   LowPower.deepSleep();  
+  #endif
 }
 
 void loop()

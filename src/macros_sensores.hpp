@@ -9,4 +9,8 @@
 #define pinBME280_SCL PB6
 #define pinBAT PA2
 
+#define pinR PA10
+#define pinG PA11
+#define pinB PA12
+
 
