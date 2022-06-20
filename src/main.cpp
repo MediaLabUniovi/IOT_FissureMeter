@@ -22,10 +22,19 @@ float BME280_tempC=0;
 float BME280_hum=0;
 int i_Vbat=0;
 
+// Sends (Variables para enviar)
+int send_encTicks=0;
+int send_DS18B20_tempC=0;
+int send_i_hum=0;
+int send_i_rain=0;
+int send_BME280_pres=0;
+int send_BME280_tempC=0;
+int send_BME280_hum=0;
+int send_i_Vbat=0;
+
 // ******** Encoder
 void read_encoder() 
 {
-  digitalWrite(LED_BUILTIN, LOW);
   static uint8_t prevClkData = 3;  // Lookup table index
   static int8_t encVal = 0;   // Encoder value  
   static const int8_t enc_states[]  = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0}; // Lookup table
@@ -46,37 +55,29 @@ void read_encoder()
    counter--;               // Decrease counter
    encVal = 0;
   }
-  digitalWrite(LED_BUILTIN, HIGH);
 }
 // ******** Encoder
 
-// Sends
-int send_encTicks=0;
-int send_DS18B20_tempC=0;
-int send_i_hum=0;
-int send_i_rain=0;
-int send_BME280_pres=0;
-int send_BME280_tempC=0;
-int send_BME280_hum=0;
-int send_i_Vbat=0;
-
+// ******** Pin Map
 const lmic_pinmap lmic_pins = {
     .nss = PB12,
     .rxtx = LMIC_UNUSED_PIN,
     .rst = PA3,
     .dio = {PA0, PA1, LMIC_UNUSED_PIN},
 };
+// ******** Pin Map
 
+// ******** Claves
 void os_getArtEui(u1_t *buf) {}
 void os_getDevEui(u1_t *buf) {}
 void os_getDevKey(u1_t *buf) {}
+// ******** Claves
 
 static osjob_t sendjob;
 
 
 void do_send(osjob_t *j)
 {
-  digitalWrite(LED_BUILTIN, LOW);
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND)
   {
@@ -84,14 +85,13 @@ void do_send(osjob_t *j)
   }
   else
   {
-    u_int8_t mydata[17];
+    // Lectura de datos
+    u_int8_t mydata[17];  // Array que se envía
 
-    // Lectura sensores
     id_msg++;
     static int lastCounter = 0;
     if(counter != lastCounter)
       lastCounter = counter;
-    DS18B20_tempC=20;
     i_hum=analogRead(pinHUM);
     i_rain=analogRead(pinRAIN);
     i_Vbat=analogRead(pinBAT);
@@ -133,7 +133,6 @@ void do_send(osjob_t *j)
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
     Serial.println(F("Packet queued"));
-    digitalWrite(LED_BUILTIN, HIGH);
   }
   // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -184,12 +183,19 @@ void onEvent(ev_t ev)
     
 
     #ifdef LIGHT_SLEEP
+    do_send(&sendjob);
     LowPower.sleep();
     #endif
 
     #ifdef DEEP_SLEEP
+    do_send(&sendjob);
     LowPower.deepSleep(); 
     #endif  
+
+    #ifdef NO_SLEEP
+    // Schedule next transmission
+    os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
+    #endif
 
     break;
   case EV_LOST_TSYNC:
@@ -236,18 +242,25 @@ void setup()
   Serial.begin(115200);
   delay(100); // per sample code on RF_95 test
 
-#ifdef VCC_ENABLE
-  // For Pinoccio Scout boards
-  pinMode(VCC_ENABLE, OUTPUT);
-  digitalWrite(VCC_ENABLE, HIGH);
-  delay(1000);
-#endif
-
   // *********  Sensores Set up
   pinMode(pinCLK, INPUT_PULLUP);
   pinMode(pinDATA, INPUT_PULLUP);
-  // attachInterrupt(digitalPinToInterrupt(pinCLK),read_encoder,CHANGE);
-  // attachInterrupt(digitalPinToInterrupt(pinDATA),read_encoder,CHANGE);
+  pinMode(pinHUM, INPUT);
+  pinMode(pinRAIN, INPUT);
+  pinMode(pinDS18B20, INPUT);
+  pinMode(pinBAT, INPUT);
+
+  // Configuración del sensor I2C
+  Wire.begin();
+  Wire.setSCL(pinBME280_SCL);
+  Wire.setSDA(pinBME280_SDA);
+  if(!sensorBME280.init())
+    Serial.println("BME280 error");
+
+  #ifdef NO_SLEEP
+  attachInterrupt(digitalPinToInterrupt(pinCLK),read_encoder,CHANGE);
+  attachInterrupt(digitalPinToInterrupt(pinDATA),read_encoder,CHANGE);
+  #endif
 
   #ifdef LIGHT_SLEEP
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinCLK), read_encoder, CHANGE, SLEEP_MODE);
@@ -259,25 +272,11 @@ void setup()
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(pinDATA), read_encoder, CHANGE, DEEP_SLEEP_MODE);
   #endif
 
-  pinMode(pinHUM, INPUT);
-  pinMode(pinRAIN, INPUT);
-  pinMode(pinDS18B20, INPUT);
-  pinMode(pinBAT, INPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);    // OFF
-
-
-  Wire.begin();
-  Wire.setSCL(pinBME280_SCL);
-  Wire.setSDA(pinBME280_SDA);
-  if(!sensorBME280.init())
-    Serial.println("BME280 error");
-
   // ******** RFM95W Set up
   // Use SPI1 on the blackpill_f411ce board.
-  SPI.setMOSI(PA7);       
-  SPI.setMISO(PA6);
-  SPI.setSCLK(PA5);
+  SPI.setMOSI(pinMOSI);       
+  SPI.setMISO(pinMISO);
+  SPI.setSCLK(pinSCLK);
   // LMIC init
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
