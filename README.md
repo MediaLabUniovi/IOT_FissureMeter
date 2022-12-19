@@ -42,3 +42,5 @@ monitor_speed = 115200
 4. Cargar el proyecto en el microcontrolador.
 
 ## Sensores
+1. **Sensor de lluvia**
+Sensor analógico. Se probó experimentalmente para conseguir una ecuación que relacionara tensión y lluvia alimentandolo a 3.3V. De alimentarlo a 5V habría que realizar este proceso de nuevo.
