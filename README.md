@@ -43,4 +43,40 @@ monitor_speed = 115200
 
 ## Sensores
 1. **Sensor de lluvia**
-Sensor analógico. Se probó experimentalmente para conseguir una ecuación que relacionara tensión y lluvia alimentandolo a 3.3V. De alimentarlo a 5V habría que realizar este proceso de nuevo.
+Sensor analógico. Se probó experimentalmente para conseguir una ecuación que relacionara tensión y lluvia alimentandolo a 3.3V. De alimentarlo a 5V habría que realizar este proceso de nuevo. La salida digital no está implementada. Tabla de conexiones:
+
+| Pin Sensor | Pin STM32 |
+| ---------- | --------- |
+| GND | GND |
+| VCC | 3V3 |
+| AO | PB0 |
+| D0 | NC |
+
+2. **Sensor de humedad del suelo**
+El sensor es parecido al de lluvia y se probó de la misma forma, pero da peor funcionamiento. Existe un [tutorial de calibración](https://www.switchdoc.com/2020/06/tutorial-capacitive-moisture-sensor-grove/). Tabla de conexiones:
+
+| Pin Sensor | Pin STM32 |
+| ---------- | --------- |
+| GND | GND |
+| VCC | 3V3 |
+| AU | PB1 |
+
+3. **BME280**
+Es un sensor I2C de temperatura, presión y humedad. Ha de estar algo alejado de cualquier fuente de calor para que la medida sea correcta. Se usa [esta librería] (https://github.com/Seeed-Studio/Grove_BME280). Tabla de conexiones:
+
+| Pin Sensor | Pin STM32 |
+| ---------- | --------- |
+| GND | GND |
+| VCC | 3V3 |
+| SCL | PB6 |
+| SDA | PB7 |
+
+4. **DS18B20**
+Sensor digital para medir la temperatura del suelo.  Formato de cable. Se puede alimentar tanto a 3.3V como a 5V. Para el conexionado, se coloca una resistencia de 4.7kOhm entre los cables de datos y VCC. Si no se coloca, siempre lee -127ºC (Valor de error). La [librería](https://github.com/milesburton/Arduino-Temperature-Control-Library.git) usada en  otros proyectos con este sensor da problemas con el STM32, por lo que no se ha usado. En su lugar se usa un archivo con funciones específicas para el sensor. Tabla de conexiones:
+
+| Color cable | Función | Pin STM32 |
+| ----------- | ------- | --------- |
+| Amarillo | DATA | PB5 |
+| Rojo | VCC | 3V3 |
+| Negro | GND | GND |
+
