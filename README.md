@@ -72,11 +72,50 @@ Es un sensor I2C de temperatura, presión y humedad. Ha de estar algo alejado de
 | SDA | PB7 |
 
 4. **DS18B20**
-Sensor digital para medir la temperatura del suelo.  Formato de cable. Se puede alimentar tanto a 3.3V como a 5V. Para el conexionado, se coloca una resistencia de 4.7kOhm entre los cables de datos y VCC. Si no se coloca, siempre lee -127ºC (Valor de error). La [librería](https://github.com/milesburton/Arduino-Temperature-Control-Library.git) usada en  otros proyectos con este sensor da problemas con el STM32, por lo que no se ha usado. En su lugar se usa un archivo con funciones específicas para el sensor. Tabla de conexiones:
+Sensor digital para medir la temperatura del suelo.  Formato de cable. Se puede alimentar tanto a 3.3V como a 5V. Para el conexionado, se coloca una resistencia de 4.7kOhm entre los cables de datos y VCC. Si no se coloca, siempre lee -127ºC (Valor de error). La [librería](https://github.com/milesburton/Arduino-Temperature-Control-Library.git) usada en  otros proyectos con este sensor da problemas con el STM32, por lo que no se ha usado. En su lugar se usa un [archivo](https://github.com/MedialabU/ProFisurometro_STM32/blob/master/src/fnDS18B20.hpp) con funciones específicas para el sensor. Tabla de conexiones:
 
 | Color cable | Función | Pin STM32 |
 | ----------- | ------- | --------- |
 | Amarillo | DATA | PB5 |
 | Rojo | VCC | 3V3 |
 | Negro | GND | GND |
+
+5. **KY-040**
+Este fue el dispositivo usado para medir distancia en la primera fase del proyecto. Un pulso de este encoder se traducen en 8.4mm lineales. No es de muy buena calidad y produce rebotes. La función de interruptor al pulsarlo no está implementada. Se puede alimentar tanto a 3.3V como 5V. Tabla de conexiones:
+
+| Pin Sensor | Pin STM32 |
+| ---------- | --------- |
+| GND | GND |
+| + | 5V |
+| SW | NC |
+| DT | PB9 |
+| CLK | PB8 |
+
+6. **Encoder de precisión**
+Dispositivo usado en la fase final del proyecto. No produce rebotes y permite medir distancia con mucha más precisión que el KY-040. Este encoder traduce 1 pulso en 0.08mm de movimiento lineal. Solo se puede alimentar a 5V. La camisa no se conecta. La elongación máxima es de 1m. Se le puede colocar un hilo para extender la distancia y poder poner el dispositivo más lejos del punto fijo, pero no podrá medir distancias mayores a la elongación máxima.
+
+| Color cable | Función | Pin STM32 |
+| ----------- | ------- | --------- |
+| Camisa | Protección | NC|
+| Negro | GND | GND|
+| Blanco | Canal A | PB9 |
+| Verde | Canal B | PB8 |
+| Rojo | VCC | 5V |
+
+## RFM95W
+Es el módulo de radio usado para LoRa. Va soldado sobre el [MediaLab RFM95 Shield](https://github.com/MedialabU/Lora-Documentacion). La PCB tiene un lugar específico para colocarlo. El DIO2 se puede dejar sin conectar. Para LoRa se usa esta [librería](https://github.com/mcci-catena/arduino-lmic). Tabla de conexiones:
+
+| Shield | Pin STM32 |
+| ---------- | --------- |
+| NSS | PB12 |
+| SCK | A5 |
+| MOSI | A7 |
+| MISO | A6 |
+| 3.3V | 3V3 |
+| G | GND |
+| DIO0 | PA0 |
+| DIO1 | PA1 |
+| DIO2 | NC |
+| RESET | PA3 |
+
 
