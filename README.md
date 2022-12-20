@@ -10,6 +10,8 @@ En el repositorio existen 3 ramas en funcionamiento. Dos de ellas funcionan con 
 | develop-OTAA | OTAA | KY-040 |
 | develop-encooder-precsion | OTAA | Encoder de precisión |
 
+Para las ramas que no llevan el encoder de precisión se usa una función de lectura del encoder especial, que hace la adquisición de datos más lenta pero más robusta. elimina en gran medida rebotes e imprecisiones. El funcionamiento es prácticamente predictivo, usa una lista de valores para comprobar si el dato que acaba de leer se corresponde con lo que debería de haber leído si el encoder fuese perfecto.
+
 ## Componentes
 | Parte  | Componente | Enlace de compra |
 | ------------- | ------------- | -------|
@@ -68,6 +70,76 @@ La librería *LoRaWAN*  utilizada es [arduino-limc](https://github.com/mcci-cate
 ```
 Ruta del archivo en proyecto de PlatformIO: ***\.pio\libdeps\blackpill_f411ce\MCCI LoRaWAN LMIC library\project_config\lmic_project_config.h***
 
+## Explicación del código
+### 1. Archivo de configuración
+El archivo contiene líneas de configuración general para el proyecto y la librería LMIC.
+
+#### 1.1 Modos de bajo consumo
+Existen tres macros para configurar los modos de bajo consumo. Solo se descomenta una. Con el modo ***DEEP_SLEEP*** se consigue el funcionamiento deseado, pero no permite la utilización del serial. El modo ***NO_SLEEP*** provoca que los datos se envíen cada intervalo de tiempo **TX_INTERVAL**, en vez de cada vez que se detecte un cambio en el encoder, haciendo que el microcontrolador nunca entre en modo de bajo consumo. El modo ***LIGHT_SLEEP*** permite interactuar con el serial pero el microcontrolador consume demadsiada corriente cuando no está despierto. [Librería](https://github.com/stm32duino/STM32LowPower) de modos de bajo consumo.
+
+#### 1.2 Credenciales
+Solo puede estar definido un conjunto de credenciales. Es importante prestar atención a la endianness. (MSB first o LSB first). Las credenciales de OTAA para el end device ID test-branch-celialon son:
+``` c++
+static const u1_t PROGMEM APPEUI[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};   // LSB first
+static const u1_t PROGMEM DEVEUI[8] = {0xCF, 0x1A, 0x05, 0xD0, 0x7E, 0xD5, 0xB3, 0x70};   // LSB first
+static const u1_t PROGMEM APPKEY[16] = {0xCE, 0x32, 0x89, 0x84, 0x6F, 0x32, 0xA2, 0xB1, 0xB2, 0xDA, 0x6C, 0xC8, 0x37, 0xDA, 0x07, 0x57};  // MSB first
+```
+
+### 2 Archivo de pines
+El archivo contiene definiciones para interactuar con los pines del Black Pill.
+
+### 3. Librería del DS18B20
+La [librería](https://github.com/milesburton/Arduino-Temperature-Control-Library.git) utilizada para este sensor en otros proyectos con microcontroladores Arduino dio problemas con el STM32, , por lo que el [archivo](https://github.com/MedialabU/ProFisurometro_STM32/blob/develop-encoder-precisi%C3%B3n/src/fnDS18B20.hpp) contiene las funciones necesarias para obtener la temperatura. Se las llama desde el archivo principal.
+
+### 4. Archivo principal
+Aquí está la lectura de los sensores y el envío de datos por LoRa. El mapa de pines es la forma de decirle a la librería ***arduino-lmic*** donde está conectado el ***RFM95W***. Es espéfifico de cada microcontrolador.
+
+```c++
+const lmic_pinmap lmic_pins = {
+    .nss = PB12,
+    .rxtx = LMIC_UNUSED_PIN,
+    .rst = PA3,
+    .dio = {PA0, PA1, LMIC_UNUSED_PIN},
+};
+```
+La lectura de los sensores y la construcción del array a enviar se hace dentro de la función de envío de datos. Los tipos *float* se convierten a enteros haciendo un escalado binario. La presión se divide entre 100 ya que es un valor muy grande y excede la capacidad del tipo *int.* Esto no afecta ya que generalmente la presión atmosférica se suele dar del orden de los hectopascales.
+
+Una vez convertidos a enteros, se separan en parte alta y parte baja y se almacenan en el array. Los pulsos del encoder también es un valor muy grande pero en este caso se desea mantener la máxima precisión, por lo que se utiliza el tipo estándar de 32 bits para almacenarlo y se separa en 4 bytes para enviar.
+
+Una vez construido el array, se prepara para enviar lo antes posible.
+
+En la parte de gestión de eventos se hace la llamada a la función de envío y manda a modo de bajo consumo.
+
+En el *setup* se inicializan las librerías. Se configuran las interrupciones en función del modo de bajo consumo seleccionado. El STM32 cuenta con varios puertos, por lo que es importante configurar los pines de comunicación digital que se van a utilizar. esto no es necesario en la mayoría de microcontroladores Arduino. Al finalizar la configuración se envía el primer conjunto de datos y se manda al modo de bajo consumo correspondiente.
+
+El *loop* solo ejecuta la función del ciclo de la librería LMIC.
+
+### 5. Función para el encoder ***KY-040***
+```c++
+void read_encoder() 
+{
+  static uint8_t prevClkData = 3;  // Lookup table index
+  static int8_t encVal = 0;   // Encoder value  
+  static const int8_t enc_states[]  = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0}; // Lookup table
+
+  prevClkData <<=2;  // Remember previous state
+
+  if (digitalRead(pinCLK)) prevClkData |= 0x02; // Add current state of pin A
+  if (digitalRead(pinDATA)) prevClkData |= 0x01; // Add current state of pin B
+  
+  encVal += enc_states[( prevClkData & 0x0f )];
+
+  // Update counter if encoder has rotated a full indent, that is at least 4 steps
+  if( encVal > 3 ) {        // Four steps forward
+    counter++;              // Increase counter
+    encVal = 0;
+  }
+  else if( encVal < -3 ) {  // Four steps backwards
+   counter--;               // Decrease counter
+   encVal = 0;
+  }
+}
+```
 ## Sensores
 1. **Sensor de lluvia**. Sensor analógico. Se probó experimentalmente para conseguir una ecuación que relacionara tensión y lluvia alimentandolo a 3.3V. De alimentarlo a 5V habría que realizar este proceso de nuevo. La salida digital no está implementada. Tabla de conexiones:
 
