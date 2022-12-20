@@ -52,7 +52,21 @@ monitor_speed = 115200
 4. Cargar el proyecto en el microcontrolador.
 
 ## Configuración del código
-Se ha de configurar la librería de LoRa. Para ello, [se va al archivo de configuración](), donde se comentan todas las líneas salvo las correspondientes a la frecuencia europea:
+La librería *LoRaWAN*  utilizada es [arduino-limc](https://github.com/mcci-catena/arduino-lmic). Se ha de configurar para frecuencias europeas. Para ello, se va al [archivo de configuración](https://github.com/mcci-catena/arduino-lmic/blob/master/project_config/lmic_project_config.h), donde se comentan todas las líneas salvo las correspondientes a la frecuencia europea:
+
+```c++
+// project-specific definitions
+#define CFG_eu868 1
+// #define CFG_us915 1
+//#define CFG_au915 1
+//#define CFG_as923 1
+// #define LMIC_COUNTRY_CODE LMIC_COUNTRY_CODE_JP      /* for as923-JP; also define CFG_as923 */
+//#define CFG_kr920 1
+//#define CFG_in866 1
+#define CFG_sx1276_radio 1
+//#define LMIC_USE_INTERRUPTS
+```
+Ruta del archivo en proyecto de PlatformIO: ***\.pio\libdeps\blackpill_f411ce\MCCI LoRaWAN LMIC library\project_config\lmic_project_config.h***
 
 ## Sensores
 1. **Sensor de lluvia**. Sensor analógico. Se probó experimentalmente para conseguir una ecuación que relacionara tensión y lluvia alimentandolo a 3.3V. De alimentarlo a 5V habría que realizar este proceso de nuevo. La salida digital no está implementada. Tabla de conexiones:
