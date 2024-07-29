@@ -95,11 +95,11 @@ void do_send(osjob_t *j)
     i_hum=analogRead(pinHUM);
     i_rain=analogRead(pinRAIN);
     i_Vbat=analogRead(pinBAT);
-    DS18B20_tempC = TempRead();
+    DS18B20_tempC = 1.0; //TempRead();
     DS18B20_tempC *= 0.0625; // conversion accuracy is 0.0625 / LSB
-    BME280_tempC = sensorBME280.getTemperature();
-    BME280_hum = sensorBME280.getHumidity();
-    BME280_pres = sensorBME280.getPressure();
+    BME280_tempC = 5.0; // sensorBME280.getTemperature();
+    BME280_hum = 6.0; //sensorBME280.getHumidity();
+    BME280_pres = 7.9; //sensorBME280.getPressure();
 
     // Sends
     send_encTicks=counter;
@@ -129,7 +129,7 @@ void do_send(osjob_t *j)
     mydata[14]=lowByte(send_BME280_hum);
     mydata[15]=highByte(send_i_Vbat);
     mydata[16]=lowByte(send_i_Vbat);
-
+    Serial.println("Packet sending");
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
     Serial.println(F("Packet queued"));
@@ -179,7 +179,7 @@ void onEvent(ev_t ev)
     }
     // Schedule next transmission
     //os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
-    do_send(&sendjob);
+    //do_send(&sendjob);
     
 
     #ifdef LIGHT_SLEEP
@@ -235,11 +235,19 @@ void onEvent(ev_t ev)
 
 void setup()
 {
-  LowPower.begin();
 
   while (!Serial)
     ; // wait for Serial to be initialized
   Serial.begin(115200);
+  Serial.println("Start");
+  delay(1000);
+  Serial.println("Start");
+  delay(1000);
+  Serial.println("Start");
+  delay(1000);
+  Serial.println("Start");
+  delay(1000);
+  Serial.println("Start");
   delay(100); // per sample code on RF_95 test
 
   // *********  Sensores Set up
@@ -251,11 +259,11 @@ void setup()
   pinMode(pinBAT, INPUT);
 
   // Configuración del sensor I2C
-  Wire.begin();
+  /*Wire.begin();
   Wire.setSCL(pinBME280_SCL);
   Wire.setSDA(pinBME280_SDA);
   if(!sensorBME280.init())
-    Serial.println("BME280 error");
+    Serial.println("BME280 error");*/
 
   #ifdef NO_SLEEP
   attachInterrupt(digitalPinToInterrupt(pinCLK),read_encoder,CHANGE);
@@ -292,7 +300,7 @@ void setup()
   uint8_t nwkskey[sizeof(NWKSKEY)];
   memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
   memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
-  LMIC_setSession(0x13, DEVADDR, nwkskey, appskey);
+  LMIC_setSession(0x1, DEVADDR, nwkskey, appskey);
 #else
   // If not running an AVR with PROGMEM, just use the arrays directly
   LMIC_setSession(0x13, DEVADDR, NWKSKEY, APPSKEY);
@@ -322,6 +330,7 @@ void setup()
   LMIC_setDrTxpow(DR_SF7, 14);
 
   // Start job
+  Serial.println("StartSend");
   do_send(&sendjob);
   
   #ifdef LIGHT_SLEEP
