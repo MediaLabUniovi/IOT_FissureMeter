@@ -1,22 +1,24 @@
 #include "configuration.h"
+#include "sensors.h"
 
 float temp;
 float hum;
 float press;
 int tHum;
 int pHum;
-
+int rainValue;
 
 const int humedadAire = 550;
 const int humedadAgua = 250;
-
 
 OneWire oneWire(pinDS18B20);
 DallasTemperature dTemp(&oneWire);
 
 int counter;
 float dallasTemp;
+int batt;
 
+//Sensor BME temperatura, humedad y presión 
 void getBME(){
 
     Serial.print("Temperatura = ");
@@ -35,6 +37,7 @@ void getBME(){
     Serial.println(" hPa");
 }
 
+//Función temperatura del suelo
 void getDallasTemp(){
     dTemp.requestTemperatures(); // Solicita las temperaturas a los sensores
     dallasTemp = dTemp.getTempCByIndex(0); // Lee la temperatura del primer sensor encontrado
@@ -48,15 +51,40 @@ void getDallasTemp(){
     }
 }
 
+//Medida del sensor de lluvia
+void rainSensor(){
+
+  int RainSensorValue=analogRead(pinRAIN);
+
+  if (RainSensorValue < 300) {
+    // Heavy rain
+    Serial.println("Heavy rain");
+    Serial.println(RainSensorValue);
+    //rainValue=2;
+  } 
+  else if (RainSensorValue <450) {
+    // Moderate rain
+    Serial.println("Moderate rain");
+    Serial.println(RainSensorValue);
+    //rainValue=1;
+  } 
+  else {
+    // No rain
+    Serial.println("No rain");
+    Serial.println(RainSensorValue);
+    //rainValue=0;
+  }
+
+} 
+
+//En esta función se ejecutan todas las medidas de los sensores
 void doSensors(){
-
-
-    //int i_rain=analogRead(pinRAIN);
-
 
     getBME();
     
     getDallasTemp();
+
+    rainSensor();
 
     // Humedad Suelo
     tHum=analogRead(pinHUM);
@@ -66,9 +94,11 @@ void doSensors(){
     Serial.print("Humedad Suelo: ");
     Serial.println(pHum);
     
+    //Encoder fisurometro
     Serial.print("Fisurometro coder: ");
     Serial.println(counter);
 
+    //Medidor de bateria
     batt = analogRead(pinBat);
     Serial.print("Batt: ");
     Serial.println(batt/100);
@@ -76,6 +106,7 @@ void doSensors(){
     
 }
 
+//Se prepara el paquete para mandar por LoRa
 void do_send() {
 if (LMIC.opmode & OP_TXRXPEND) {
         Serial.println(F("Operation pending, not sending"));
@@ -106,11 +137,11 @@ if (LMIC.opmode & OP_TXRXPEND) {
         message[7]=humB2 >>8;
 
         // Presión ambiente
-        int pressB2 = press *100;
-        message[8]=byte(pressB2);
-        message[9]=pressB2 >>8;
-        message[10]=pressB2 >>16;
-        message[11]=pressB2 >>32;
+        int pressB2 = press * 100;
+        message[8] = byte(pressB2);
+        message[9] = pressB2 >> 8;
+        message[10] = pressB2 >> 16;
+        message[11] = pressB2 >> 24;  // Corrige a 24 bits en lugar de 32 
 
         // Humedad suelo
         pHum = pHum *100;
@@ -118,8 +149,9 @@ if (LMIC.opmode & OP_TXRXPEND) {
         message[13]=pHum >>8;
 
         // Lluvia
-        message[14]=byte(pHum);
-        message[15]=pHum >>8;
+        int RainSensorValue = RainSensorValue *100;
+        message[14]=byte(RainSensorValue);
+        message[15]=RainSensorValue >>8;
 
         // Bateria
         message[16]=byte(batt);
@@ -131,6 +163,7 @@ if (LMIC.opmode & OP_TXRXPEND) {
     }
 }
 
+//Funciones de medida de los encoders
 void encoderA() {
   if (digitalRead(pinEncoderClk) == digitalRead(pinEncoderData))
     counter--;

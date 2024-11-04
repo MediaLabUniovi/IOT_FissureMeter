@@ -1,6 +1,6 @@
 
 #include "configuration.h"
-#include "sensors.cpp"
+#include "sensors.h"
 
 #define pinMOSI PA7
 #define pinMISO PA6
@@ -13,7 +13,7 @@ Adafruit_BME280  bme280;
 unsigned long lastSensorRead = 0;  // Último tiempo en que se ejecutó doSensors
 const unsigned long sensorInterval = 25000;  // Intervalo para doSensors (20 segundos = 20000 milisegundos)
 
-
+//Mapa de pines del chip lora
 const lmic_pinmap lmic_pins = {
     .nss = PB12,
     .rxtx = LMIC_UNUSED_PIN,
@@ -21,7 +21,7 @@ const lmic_pinmap lmic_pins = {
     .dio = {PA0, PA1, LMIC_UNUSED_PIN},
 };
 
-
+//Credenciales de TTN
 void os_getDevEui (u1_t* buf) {
     // Copia tu Device EUI aquí en orden inverso
     memcpy_P(buf, "\xAE\x7A\x06\xD0\x7E\xD5\xB3\x70", 8);
@@ -39,7 +39,7 @@ void os_getDevKey (u1_t* buf) {
 }
 
 
-
+//Eventos de LoRa
 void onEvent (ev_t ev) {
     Serial.print(os_getTime());
     Serial.print(": ");

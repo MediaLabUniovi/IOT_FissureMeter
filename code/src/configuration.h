@@ -17,8 +17,8 @@ extern Adafruit_BME280 bme280;  // Declaración externa para que otros archivos 
 #define pinEncoderData PB8
 #define pinHUM PB1
 #define pinBat PA2
+#define pinRAIN PB0
 
-int batt;
 
 
 
