@@ -1,3 +1,4 @@
+//sensors.cpp
 #include "configuration.h"
 #include "sensors.h"
 
@@ -11,6 +12,9 @@ int rainValue;
 const int humedadAire = 550;
 const int humedadAgua = 250;
 
+// Temporizador para el encoder
+const unsigned long interval = 100; 
+
 OneWire oneWire(pinDS18B20);
 DallasTemperature dTemp(&oneWire);
 
@@ -21,20 +25,22 @@ int batt;
 //Sensor BME temperatura, humedad y presión 
 void getBME(){
 
-    Serial.print("Temperatura = ");
+  bme280.takeForcedMeasurement();
+
+    //Serial1.print("Temperatura = ");
     temp = bme280.readTemperature();
-    Serial.print(temp);
-    Serial.println(" °C");
+    //Serial1.print(temp);
+    //Serial1.println(" °C");
 
-    Serial.print("Humedad = ");
+    //Serial1.print("Humedad = ");
     hum = bme280.readHumidity();
-    Serial.print(hum);
-    Serial.println(" %");
+    //Serial1.print(hum);
+    //Serial1.println(" %");
 
-    Serial.print("Presión = ");
+    //Serial1.print("Presión = ");
     press = bme280.readPressure() /100.0;
-    Serial.print(press);
-    Serial.println(" hPa");
+    //Serial1.print(press);
+    //Serial1.println(" hPa");
 }
 
 //Función temperatura del suelo
@@ -43,11 +49,11 @@ void getDallasTemp(){
     dallasTemp = dTemp.getTempCByIndex(0); // Lee la temperatura del primer sensor encontrado
 
     if(dallasTemp == DEVICE_DISCONNECTED_C) {
-        Serial.println("Error: Sensor desconectado"); // Verifica si el sensor está desconectado
+        //Serial1.println("Error: Sensor desconectado"); // Verifica si el sensor está desconectado
     } else {
-        Serial.print("Temperatura suelo: ");
-        Serial.print(dallasTemp);
-        Serial.println(" °C");
+        //Serial1.print("Temperatura suelo: ");
+        //Serial1.print(dallasTemp);
+        //Serial1.println(" °C");
     }
 }
 
@@ -58,20 +64,20 @@ void rainSensor(){
 
   if (RainSensorValue < 300) {
     // Heavy rain
-    Serial.println("Heavy rain");
-    Serial.println(RainSensorValue);
+    //Serial1.println("Heavy rain");
+    //Serial1.println(RainSensorValue);
     //rainValue=2;
   } 
   else if (RainSensorValue <450) {
     // Moderate rain
-    Serial.println("Moderate rain");
-    Serial.println(RainSensorValue);
+    //Serial1.println("Moderate rain");
+    //Serial1.println(RainSensorValue);
     //rainValue=1;
   } 
   else {
     // No rain
-    Serial.println("No rain");
-    Serial.println(RainSensorValue);
+    //Serial1.println("No rain");
+    //Serial1.println(RainSensorValue);
     //rainValue=0;
   }
 
@@ -91,17 +97,17 @@ void doSensors(){
     pHum = map(tHum, humedadAire, humedadAgua, 0, 100); //Obtención de valores de humedad y mapeo a porcentaje
     if(pHum > 100) pHum = 100; // Revisar si hay que hacer cota inferior
 
-    Serial.print("Humedad Suelo: ");
-    Serial.println(pHum);
+    //Serial1.print("Humedad Suelo: ");
+    //Serial1.println(pHum);
     
     //Encoder fisurometro
-    Serial.print("Fisurometro coder: ");
-    Serial.println(counter);
+    //Serial1.print("Fisurometro coder: ");
+    //Serial1.println(counter);
 
     //Medidor de bateria
     batt = analogRead(pinBat);
-    Serial.print("Batt: ");
-    Serial.println(batt/100);
+    //Serial1.print("Batt: ");
+    //Serial1.println(batt/100);
     
     
 }
@@ -109,7 +115,7 @@ void doSensors(){
 //Se prepara el paquete para mandar por LoRa
 void do_send() {
 if (LMIC.opmode & OP_TXRXPEND) {
-        Serial.println(F("Operation pending, not sending"));
+        //Serial1.println(F("Operation pending, not sending"));
     } else {
         // Buffer para almacenar los datos de los floats
         uint8_t message[20];
@@ -159,21 +165,32 @@ if (LMIC.opmode & OP_TXRXPEND) {
         
         // Enviar el mensaje
         LMIC_setTxData2(1, message, sizeof(message), 0);
-        Serial.println(F("Sending uplink packet with float values..."));
+        //Serial1.println(F("Sending uplink packet with float values..."));
     }
 }
 
 //Funciones de medida de los encoders
 void encoderA() {
-  if (digitalRead(pinEncoderClk) == digitalRead(pinEncoderData))
+  if (digitalRead(pinEncoderClk) == digitalRead(pinEncoderData)){
     counter--;
-  else
+    }
+  else{
     counter++;
+    }
+
+  // Se espera un tiempo antes de dormir el micro por si hay mas cambios del encoder(millis()=0 al despertar el micro)
+  if (Encoder && millis() >= interval){LowPower.deepSleep();}//Se vuelve adormir el micro después de activarse la interrupción del encoder si no se está enviando algo
+
 }
 
 void encoderB() {
-  if (digitalRead(pinEncoderClk) != digitalRead(pinEncoderData))
+  if (digitalRead(pinEncoderClk) != digitalRead(pinEncoderData)){
     counter--;
-  else
+    }
+  else{
     counter++;
+    }
+
+  if (Encoder && millis() >= interval){LowPower.deepSleep();}//Se vuelve adormir el micro después de activarse la interrupción del encoder si no se está enviando algo
+
 }

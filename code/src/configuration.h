@@ -9,6 +9,8 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+#include <STM32LowPower.h>
+#include <STM32RTC.h>
 
 extern Adafruit_BME280 bme280;  // Declaración externa para que otros archivos lo usen
 
