@@ -6,19 +6,19 @@
 
 # LoRa-Based Crack Gauge (Fisurómetro) 🚀
 
-This repository contains the code for a **LoRa-based crack gauge (fisurómetro)** project, which uses a **Black Pill v2.0 (STM32)** microcontroller to measure and transmit data on structural cracks through a LoRa network.
+This repository contains the code for a **LoRa-based crack gauge (fisurómetro)** project, which uses a **LiLyGo T3 v1.6.1** microcontroller to measure and transmit data on structural cracks through a LoRa network.
 
 ## Features
 
 - **3D Printed Crack Gauge**: The sensor and structure are built using 3D-printed components, making it customizable for different environments.
-- **Black Pill v2.0 (STM32)**: The fisurómetro is powered by an Black Pill v2.0 (STM32) microcontroller, allowing for flexible integration with various sensors.
+- **LiLyGo T3 v1.6.1**: The fisurómetro is powered by an Black Pill v2.0 (STM32) microcontroller, allowing for flexible integration with various sensors.
 - **LoRa Communication**: The device sends the sensor data via LoRa, a long-range communication protocol.
 - **Power Supply**: It runs on 2S batteries, suitable for long-term, low-power applications.
 - **Educational Outreach**: The project is designed with educational activities in mind, particularly for schools and universities.
 
 ## Hardware Requirements
 
-- **Black Pill v2.0 (STM32)** microcontroller
+- **LiLyGo T3 v1.6.1** microcontroller
 - **LoRa Module** (e.g., RFM95W)
 - **2S Batteries**
 - **Crack Gauge Sensor** (Fisurómetro)
@@ -26,7 +26,7 @@ This repository contains the code for a **LoRa-based crack gauge (fisurómetro)*
 
 ## Software Requirements
 
-- **STM32CubeIDE** or any compatible platform for STM32 development
+- **Arduino IDE** or any compatible platform for embededd C/C++ development
 - Required libraries:
   - `LMIC`: For LoRa communication management
   - `Wire.h`: For I2C communication with sensors
@@ -41,6 +41,7 @@ This repository contains the code for a **LoRa-based crack gauge (fisurómetro)*
    ```bash
    git clone https://github.com/MedialabUniovi/IOT_FissureMeter.git
    ```
+   It is necessary to have git installed.
 
 2. **Set up the environment**:
 
@@ -48,11 +49,11 @@ This repository contains the code for a **LoRa-based crack gauge (fisurómetro)*
 
 3. **Assemble the hardware**:
 
-   Connect the Black Pill v2.0 board to your LoRa module, and attach the fisurómetro sensor. Power the setup using 2S batteries.
+   Connect the LiLyGo T3 board to your fisurómetro sensor. Power the setup using 2S batteries.
 
 4. **Upload the code**:
 
-   Compile and upload the code to the **Black Pill v2.0 (STM32)** microcontroller.
+   Compile and upload the code to the **LiLyGo T3 v1.6.1** microcontroller.
 
 ## Usage
 
